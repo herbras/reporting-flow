@@ -1,11 +1,13 @@
 ---
-description: Close a Founderplus cycle — close Fizzy cards + draft vault entry for what's worth remembering
+description: Close a Founderplus cycle — close Multica issues + draft vault entry for what's worth remembering
 argument-hint: "<ringkasan apa yang shipped>"
 ---
 
 # /cycle-ship — Tutup Cycle & Catat ke Vault
 
-Kamu adalah orchestrator close-out cycle. Tugas: pastikan (1) Fizzy bersih, (2) hal-hal yang penting tercatat di vault. **Bukan** menulis untuk public — kamu cuma draft entry mentah ke `raw/inbox/` lewat `/catat`.
+Kamu adalah orchestrator close-out cycle. Tugas: pastikan (1) Multica bersih, (2) hal-hal yang penting tercatat di vault. **Bukan** menulis untuk public — kamu cuma draft entry mentah ke `raw/inbox/` lewat `/catat`.
+
+Fizzy dorman. Jangan `fizzy card close`.
 
 ## Input
 
@@ -16,19 +18,25 @@ Kamu adalah orchestrator close-out cycle. Tugas: pastikan (1) Fizzy bersih, (2) 
 ### 1. Konfirmasi Konteks
 Tanya kalau belum jelas:
 - **Cycle apa yang ditutup?** (nama pitch / branch git)
-- **Cards Fizzy yang relevan?** (kalau user tidak sebut, jalankan langkah 2 untuk discover)
+- **Issue Multica yang relevan?** (kalau user tidak sebut, jalankan langkah 2 untuk discover)
 
-### 2. Audit Status Fizzy
+### 2. Audit Status Multica
 
-Tampilkan kartu yang masih open di branch/cycle ini:
+Tampilkan issue yang masih terbuka di project/cycle ini:
 ```bash
-fizzy card list --assignee me --indexed-by not_now,stalled --jq '[.data[] | {number, title, column}]'
+multica issue list --status in_progress --output json
+multica issue list --status todo --output json
+multica issue list --status blocked --output json
+multica issue list --status in_review --output json
 ```
 
-Untuk setiap kartu yang **belum** closed, tanya user:
-- ✅ Sudah selesai → `fizzy card close <num>`
-- ⏸ Belum selesai, carry over ke cycle berikutnya → biarkan, tapi catat di entry vault
-- ❌ Tidak jadi dikerjakan → `fizzy card postpone <num>` atau close dengan komentar alasan
+Filter ke issue cycle ini (project + judul/deskripsi). Untuk setiap yang **belum** `done`, tanya user:
+- Sudah selesai → `multica issue status FOUN-<n> done`
+- Belum selesai, carry over ke cycle berikutnya → biarkan, tapi catat di entry vault
+- Tidak jadi dikerjakan → `multica issue status FOUN-<n> cancelled` plus komentar alasan:
+  ```
+  multica issue comment add FOUN-<n> --content "Dibatalkan: <alasan>."
+  ```
 
 ### 3. Audit Status Git
 
@@ -43,18 +51,18 @@ Kalau branch belum di-merge ke main: konfirmasi PR sudah merged sebelum lanjut.
 ### 4. Filter — Apa yang Layak Masuk Vault?
 
 **Wajib catat:**
-- ✅ Fitur user-facing yang shipped (apa, siapa user, dampak)
-- ✅ Keputusan arsitektur (decision, alternatif yang ditolak, alasan)
-- ✅ Breaking change atau migrasi
-- ✅ Konsep/SOP/pattern baru yang lahir dari cycle ini
-- ✅ Lesson learned yang akan mempengaruhi cycle berikutnya
-- ✅ Update OKR/KR yang bergerak
+- Fitur user-facing yang shipped (apa, siapa user, dampak)
+- Keputusan arsitektur (decision, alternatif yang ditolak, alasan)
+- Breaking change atau migrasi
+- Konsep/SOP/pattern baru yang lahir dari cycle ini
+- Lesson learned yang akan mempengaruhi cycle berikutnya
+- Update OKR/KR yang bergerak
 
-**Tidak perlu catat (sudah ada di Fizzy/Git):**
-- ❌ Daftar commit
-- ❌ Daftar kartu yang dipindah antar kolom
-- ❌ Diskusi teknis per task
-- ❌ Bug minor yang sudah closed di Fizzy
+**Tidak perlu catat (sudah ada di Multica/Git):**
+- Daftar commit
+- Daftar issue yang pindah status
+- Diskusi teknis per task
+- Bug minor yang sudah `done` di Multica
 
 ### 5. Susun Draft Entry
 
@@ -78,7 +86,7 @@ OKR/KR yang bergerak:
 - <KR-X> dari <old> ke <new>
 
 Carry over ke cycle berikutnya:
-- <kartu Fizzy #N — alasan>
+- <FOUN-n — alasan>
 ```
 
 ### 6. Pindah ke Working Directory Vault
@@ -125,9 +133,9 @@ Tanya user:
 ```
 Cycle <pitch-name> closed.
 
-Fizzy:
-  Cards closed: <N>
-  Carry over: <M> kartu (<list nomor>)
+Multica:
+  Issues done: <N>
+  Carry over: <M> issue (<list FOUN-n>)
 
 Git:
   Branch: <branch-name> merged ke main
@@ -149,7 +157,8 @@ Next:
 ## Aturan
 
 - **JANGAN tulis langsung ke `wiki/`** — selalu lewat `/catat` ke `raw/inbox/`
-- **JANGAN catat hal yang sudah ada di Fizzy/Git** — vault buat memori jangka panjang, bukan duplikat
+- **JANGAN catat hal yang sudah ada di Multica/Git** — vault buat memori jangka panjang, bukan duplikat
+- **JANGAN sentuh Fizzy** — papan kerja adalah Multica
 - **Konfirmasi setiap entry** sebelum `/catat` execute — preview dulu
 - Kalau cycle gagal/aborted, tetap catat — lesson dari kegagalan sama berharganya
 - Kalau ragu apakah suatu hal layak dicatat: tanya "3 bulan lagi orang masih perlu tahu ini?" Kalau ya → catat. Kalau tidak → skip.

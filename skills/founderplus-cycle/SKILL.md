@@ -2,12 +2,13 @@
 name: founderplus-cycle
 description: |
   Orchestrate Founderplus product execution cycle (Shape Up methodology) across
-  Fizzy (task tracking), Git (code), and the agent-changelog vault (knowledge base).
-  Thin orchestrator — delegates to the `fizzy` skill for board/card operations,
-  to git for code, and to the vault's `/catat` + `/compile` slash commands for
-  documentation. Use this skill when starting/shipping a cycle, or when the user
-  needs guidance on where a piece of information belongs (Fizzy vs Git commit
-  message vs vault).
+  Multica (task tracking), Git (code), and the agent-changelog vault (knowledge
+  base). Thin orchestrator — delegates to `multica` CLI for issue/project
+  operations, to git for code, and to the vault's `/catat` + `/compile` slash
+  commands for documentation. Use this skill when starting/shipping a cycle, or
+  when the user needs guidance on where a piece of information belongs (Multica
+  vs Git commit message vs vault). Fizzy is dormant — do not open or update
+  Fizzy cards for cycle work.
 triggers:
   - kick-off
   - kickoff
@@ -26,6 +27,7 @@ triggers:
   - shape up
   - tim product
   - product engineer workflow
+  - multica
 invocable: true
 argument-hint: "[start|ship|status] [pitch-name]"
 ---
@@ -34,29 +36,33 @@ argument-hint: "[start|ship|status] [pitch-name]"
 
 Skill ini **tidak** menggantikan tools yang sudah ada. Fungsinya menjahit:
 
-- **Fizzy** (via skill `fizzy` resmi) — task list, kartu, kolom, komentar
+- **Multica** (CLI `multica`) — issue, project, komentar. Workspace
+  `founderplus-product` di https://pm.founderplus.id
 - **Git** — branch, commit, PR di repo kode
 - **agent-changelog vault** — knowledge base permanen via `/catat` & `/compile`
   - Vault path: `~/Documents/Founderplus/agent-changelog/`
+
+**Fizzy dorman.** `fizzy` / app.fizzy.do bukan papan kerja. Driver webhook
+Fizzy di `apps/api` adalah sisa support-ticket, bukan cycle.
 
 ## Prinsip Inti
 
 1. **Pitch turun → eksekusi → ship → catat.** 4 fase. Jangan lompat.
 2. **Sumber kebenaran berbeda per artefak:**
-   - "Apa yang dikerjakan minggu ini" → Fizzy
+   - "Apa yang dikerjakan minggu ini" → Multica
    - "Diff kode" → Git
    - "Kenapa keputusan ini diambil 3 bulan lagi masih perlu diingat" → vault
-3. **Diam = invisible.** Setiap stuck/keputusan teknis → komentar Fizzy. Setiap milestone/decision strategis → `/catat`.
-4. **Granularity Fizzy:** 1 kartu = 1 unit yang bisa di-ship & di-test sendiri. Target 3–5 kartu kecil/hari.
+3. **Diam = invisible.** Setiap stuck/keputusan teknis → komentar Multica. Setiap milestone/decision strategis → `/catat`.
+4. **Granularity Multica:** 1 issue = 1 unit yang bisa di-ship & di-test sendiri. Target 3–5 issue kecil/hari.
 
 ## Decision Tree — "Ini ditaruh di mana?"
 
 ```
 Informasi yang mau disimpan?
-├── Status task harian / subtask / komentar teknis per kartu
-│   └── → Fizzy (komentar di kartu, atau kartu baru)
+├── Status task harian / subtask / komentar teknis per issue
+│   └── → Multica (komentar di issue, atau issue baru)
 ├── Diff kode / pesan commit
-│   └── → Git (commit message singkat, reference card Fizzy kalau perlu)
+│   └── → Git (commit message singkat, Refs: FOUN-<n> kalau perlu)
 ├── Keputusan arsitektur / lesson learned / SOP / konsep baru
 │   └── → vault via `/catat` (raw/inbox/) → nanti `/compile` ke wiki/
 ├── Update OKR / progress KR
@@ -71,11 +77,12 @@ PM (Huda) presentasi Pitch. Tanggung jawab Product Engineer:
 
 - [ ] Baca Pitch pelan, catat pertanyaan
 - [ ] Riset teknis (Uphill Work) — jangan langsung koding
-  - Pakai Claude Code di repo kode untuk eksplorasi
+  - Pakai agen di repo kode untuk eksplorasi
   - Spawn `Agent(subagent_type=Explore)` kalau repo besar
-- [ ] Pecah jadi task list di Fizzy — gunakan skill `fizzy`:
-  - `fizzy card create --board <id> --title "..." --description "Pitch: <link>"`
-  - `fizzy step create --card <num> --text "..."` untuk subtasks
+- [ ] Pecah jadi issue di Multica:
+  - `multica auth status` dulu (server harus `https://pm.founderplus.id`)
+  - `multica project list --output json` lalu pilih project, atau buat baru
+  - `multica issue create --project <id> --title "..." --description "Pitch: <link>" --status todo`
 - [ ] Validasi singkat task list dengan Technical PM
 - [ ] Buat git branch di repo kode: `git checkout -b cycle/<pitch-slug>`
 
@@ -85,18 +92,18 @@ PM (Huda) presentasi Pitch. Tanggung jawab Product Engineer:
 
 Selama cycle berjalan:
 
-- Koding di repo, pakai Claude Code untuk akselerasi
-- **Setiap commit:** pesan jelas, format `<type>(<scope>): <summary>` + `Refs: fizzy/<card-num>`
-- **Setiap perubahan status kartu:**
+- Koding di repo
+- **Setiap commit:** pesan jelas, format `<type>(<scope>): <summary>` + `Refs: FOUN-<n>`
+- **Setiap perubahan status issue:**
   ```
-  fizzy card column --card <num> --column <col-id>
+  multica issue status FOUN-<n> in_progress   # atau in_review, blocked, done, cancelled
   ```
-- **Setiap keputusan teknis non-trivial:** komentar di kartu Fizzy
+  Status sah: `backlog`, `todo`, `in_progress`, `in_review`, `done`, `blocked`, `cancelled`.
+- **Setiap keputusan teknis non-trivial:** komentar di issue Multica
   ```
-  fizzy comment create --card <num> --body "Pakai approach X karena Y. Trade-off: Z."
+  multica issue comment add FOUN-<n> --content "Pakai approach X karena Y. Trade-off: Z."
   ```
-- **Update Hill Chart** saat progres signifikan (uphill → top → downhill)
-- **Stuck > 1 hari** → tulis di kartu, mention shepherd
+- **Stuck > 1 hari** → tulis di issue, assign shepherd
 
 ## Fase 3 — Ship
 
@@ -104,7 +111,7 @@ Per fitur selesai:
 
 - [ ] Test sendiri (kualitas = tanggung jawab pemilik fitur)
 - [ ] Push branch, buat PR, tag reviewer
-- [ ] Setelah merge: `fizzy card close <num>`
+- [ ] Setelah merge: `multica issue status FOUN-<n> done`
 - [ ] Kalau ini milestone signifikan (rilis, fitur user-facing, breaking change) → lanjut Fase 4
 
 ## Fase 4 — Catat ke Vault
@@ -121,9 +128,9 @@ Yang **wajib** masuk vault:
 | Konsep baru / SOP lahir | `/catat` lalu nanti `/compile` akan generate `wiki/concepts/` atau `wiki/sop/` |
 | Retrospective / lesson learned cycle | `/catat <apa yang belajar, apa yang akan diubah next cycle>` |
 
-Yang **tidak perlu** masuk vault (tetap di Fizzy/Git):
+Yang **tidak perlu** masuk vault (tetap di Multica/Git):
 - Diskusi harian per task
-- Status kartu bergerak
+- Status issue bergerak
 - Daftar subtask
 - Diff kode mentah
 
@@ -153,14 +160,14 @@ Saat memanggil `/catat` atau menulis ke vault, ingat constraint dari `CLAUDE.md`
 
 ```mermaid
 flowchart LR
-    A[Pitch] --> B[Riset: Claude Code]
-    B --> C[Task List: Fizzy]
+    A[Pitch] --> B[Riset]
+    B --> C[Issue list: Multica]
     C --> D[Branch: git checkout -b]
     D --> E[Code + Commit]
-    E --> F[Update Fizzy: kolom + komentar]
+    E --> F[Update Multica: status + komentar]
     F --> G{Cycle done?}
     G -->|tidak| E
-    G -->|ya| H[fizzy card close]
+    G -->|ya| H[multica issue status done]
     H --> I{Milestone/decision penting?}
     I -->|ya| J[/catat ke vault/]
     I -->|tidak| K[End cycle]
@@ -173,11 +180,11 @@ flowchart LR
 - **Tanpa argumen:** tampilkan ringkasan + tanya user mau apa (start cycle / ship / status / explain)
 - **`start <pitch-name>`:** delegasi ke `/cycle-start`
 - **`ship <ringkasan>`:** delegasi ke `/cycle-ship`
-- **`status`:** panggil `fizzy card list --assignee me --indexed-by not_now,stalled` + tampilkan kartu in-progress
+- **`status`:** panggil `multica issue list --assignee "ibrahim" --status in_progress --output json` plus `--status blocked` dan `--status todo`
 
 ## Referensi
 
-- Fizzy skill: `~/.agents/skills/fizzy/SKILL.md` (atau `fizzy --help`)
+- Multica CLI: `multica --help` (auth: `multica auth status`; login: `multica login`)
 - Vault CLAUDE.md: `~/Documents/Founderplus/agent-changelog/CLAUDE.md`
 - Team Ops Playbook: `~/Documents/Founderplus/agent-changelog/wiki/concepts/product/team-ops/`
 - Slash commands: `~/.claude/commands/cycle-start.md`, `~/.claude/commands/cycle-ship.md`
